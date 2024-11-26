@@ -2,15 +2,16 @@
 
 import sys
 import threading
+import signal  # Imported for signal handling
 from PySide6.QtWidgets import (
     QApplication, QLineEdit, QLabel, QVBoxLayout, QWidget, QTextEdit
 )
-from PySide6.QtCore import Qt, Signal, QObject, Slot, QEvent
-from PySide6.QtGui import QTextCursor  # **New Import**
+from PySide6.QtCore import Qt, Signal, QObject, Slot, QEvent, QTimer
+from PySide6.QtGui import QTextCursor
 from pynput import keyboard
 from config import DEFAULT_PROMPT
 from database import get_db_connection, fetch_recent_full_texts
-from ollama_client import send_to_ollama, send_to_ollama_stream  # **Import the streaming function**
+from ollama_client import send_to_ollama, send_to_ollama_stream
 from logger import logger
 
 
@@ -35,7 +36,7 @@ class HotkeyListener(QObject):
 
 class SpotlightWindow(QWidget):
     assistant_reply_signal = Signal(str)
-    assistant_reply_part_signal = Signal(str)  # **New Signal for Streaming Parts**
+    assistant_reply_part_signal = Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -46,7 +47,7 @@ class SpotlightWindow(QWidget):
 
         # Connect the signals to the slots
         self.assistant_reply_signal.connect(self.display_response)
-        self.assistant_reply_part_signal.connect(self.append_response)  # **Connect the New Signal**
+        self.assistant_reply_part_signal.connect(self.append_response)
 
     def init_ui(self):
         self.query_input = QLineEdit(self)
@@ -104,6 +105,17 @@ class SpotlightWindow(QWidget):
             }
         """)
 
+    def show(self):
+        super().show()
+        # Use a single-shot timer to set focus after the window is shown
+        QTimer.singleShot(100, self.focus_query_input)
+
+    def focus_query_input(self):
+        self.raise_()  # Ensure the window is on top
+        self.activateWindow()  # Activate the window
+        self.query_input.setFocus(Qt.ActiveWindowFocusReason)  # Set focus to the input
+        self.query_input.selectAll()  # Optional: Select all text for easy overwriting
+
     def handle_query(self):
         user_query = self.query_input.text().strip()
         if not user_query:
@@ -142,11 +154,11 @@ class SpotlightWindow(QWidget):
         prompt = f"{DEFAULT_PROMPT}\n\nContext:\n{context_text}\n\nUser Query:\n{user_query}"
         logger.debug(f"Prompt: {prompt}")
 
-        # **Use the streaming function**
+        # Use the streaming function
         try:
             for assistant_part in send_to_ollama_stream(prompt):
                 if assistant_part:
-                    logger.debug(f"Received part from LLM: {assistant_part}")
+                    logger.info(f"Received part from LLM: {assistant_part}")
                     # Emit signal with assistant reply part
                     self.assistant_reply_part_signal.emit(assistant_part)
         except Exception as e:
@@ -159,7 +171,6 @@ class SpotlightWindow(QWidget):
         # Allow the layout to adjust the window size
         self.adjustSize()
 
-    # **New Slot to Append Streaming Parts**
     @Slot(str)
     def append_response(self, part):
         self.response_display.moveCursor(QTextCursor.End)
@@ -183,19 +194,6 @@ class SpotlightWindow(QWidget):
             QApplication.primaryScreen().geometry().center().x() - self.width() // 2,
             QApplication.primaryScreen().geometry().center().y() - self.height() // 2 - 200
         )
-
-        # Bring the window to the front and focus the input
-        self.raise_()
-        self.activateWindow()
-        self.query_input.setFocus()
-
-        # Adjust window height based on whether there is a response
-        if self.response_display.toPlainText().strip():
-            self.setMinimumHeight(60 + 240)
-            self.setMaximumHeight(60 + 240)
-        else:
-            self.setMinimumHeight(60)
-            self.setMaximumHeight(60)
 
     def toggle_visibility(self):
         if self.isVisible():
@@ -221,6 +219,13 @@ def main():
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)  # Ensure the app doesn't quit when the window is hidden
 
+    # **Signal Handling for Ctrl+C (SIGINT)**
+    def signal_handler(sig, frame):
+        logger.info("SIGINT received. Exiting application.")
+        app.quit()
+
+    signal.signal(signal.SIGINT, signal_handler)
+
     window = SpotlightWindow()
 
     # Set up the hotkey listener
@@ -229,7 +234,7 @@ def main():
     # Connect the hotkey signal to toggle window visibility
     hotkey_listener.hotkey_pressed.connect(window.toggle_visibility)
 
-    # Start the hotkey listener in a separate thread
+    # Start the hotkey listener in a separate daemon thread
     threading.Thread(target=hotkey_listener.start, daemon=True).start()
 
     sys.exit(app.exec())
@@ -237,3 +242,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
