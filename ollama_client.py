@@ -1,6 +1,6 @@
 # ollama_client.py
 
-from ollama import chat
+from ollama import Client
 from config import OLLAMA_MODEL_NAME, OLLAMA_TIMEOUT
 from logger import logger
 
@@ -28,3 +28,23 @@ def send_to_ollama(prompt):
     except Exception as e:
         logger.error(f"Error communicating with Ollama: {e}")
         return None
+
+# **New Function for Streaming**
+def send_to_ollama_stream(prompt):
+    user_message = {
+        'role': 'user',
+        'content': prompt
+    }
+    
+    try:
+        client = Client()
+        logger.info("Starting streaming with Ollama.")
+        for part in client.chat(model=OLLAMA_MODEL_NAME, messages=[user_message], stream=True):
+            assistant_part = part.get('message', {}).get('content', '')
+            if assistant_part:
+                yield assistant_part
+        logger.info("Completed streaming response from Ollama.")
+    except Exception as e:
+        logger.error(f"Error streaming from Ollama: {e}")
+        yield "Error communicating with the assistant."
+        

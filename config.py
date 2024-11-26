@@ -7,7 +7,7 @@ from datetime import timedelta
 DATABASE_PATH = '/Users/davell/Library/Containers/today.jason.rem/Data/Library/Application Support/today.jason.rem/db.sqlite3'
 
 # Assistant Configuration
-INTERVAL_SECONDS = 10
+INTERVAL_SECONDS = 15
 
 # Ollama Configuration
 OLLAMA_MODEL_NAME = 'llama3.2:3b'  # Update as per your model
@@ -21,9 +21,7 @@ LOG_FILE = 'assistant.log'
 # Prompt Configuration
 # Define your prompt here. This is the part you want to prominently feature for easy editing.
 DEFAULT_PROMPT = """
-You are an assistant that helps with identifying spelling errors. You will be given a screengrab of text from while the user is working. 
-It may not be well-formatted. However, when you are very confident about a spelling error, write "spelling error, <word>, <correction>", 
-with each error on its own line.
+You are an assistant that helps answer questions based on recent user context. Provide clear and concise answers to the user's queries.
 """
 
 # You can also define additional prompts or templates as needed
