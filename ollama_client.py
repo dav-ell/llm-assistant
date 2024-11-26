@@ -1,6 +1,6 @@
 # ollama_client.py
 
-from ollama import Client
+from ollama import Client, chat
 from config import OLLAMA_MODEL_NAME, OLLAMA_TIMEOUT
 from logger import logger
 
@@ -46,5 +46,5 @@ def send_to_ollama_stream(prompt):
         logger.info("Completed streaming response from Ollama.")
     except Exception as e:
         logger.error(f"Error streaming from Ollama: {e}")
-        yield "Error communicating with the assistant."
+        yield "Error communicating with the assistant."   
         

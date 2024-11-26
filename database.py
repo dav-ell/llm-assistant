@@ -38,7 +38,7 @@ def fetch_recent_full_texts(conn, interval_seconds=INTERVAL_SECONDS):
         interval_seconds (int, optional): The time interval in seconds to look back. Defaults to INTERVAL_SECONDS.
 
     Returns:
-        list of tuples: Retrieved records containing frame_id, timestamp, full_text, and langid.
+        list of tuples: Retrieved records containing frame_id, full_text, and langid.
     """
     try:
         cursor = conn.cursor()
@@ -52,7 +52,6 @@ def fetch_recent_full_texts(conn, interval_seconds=INTERVAL_SECONDS):
         query = """
         SELECT
             at.frameId AS frame_id,
-            f.timestamp,
             at.text AS full_text,
             at.lid AS langid
         FROM
@@ -81,3 +80,4 @@ def fetch_recent_full_texts(conn, interval_seconds=INTERVAL_SECONDS):
     except Exception as e:
         logger.error(f"Unexpected error during fetch: {e}")
         raise
+    
