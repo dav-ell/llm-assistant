@@ -1,6 +1,8 @@
 # llm-assistant
 Query recent things you've seen on your screen with a local ollama model in a Spotlight-like UI. Relies on [https://github.com/jasonjmcghee/rem](rem) for context retrieval.
 
+![LLM Assistant Demo](assets/llm-assistant.gif)
+
 To run
 ```bash
 pip install -r requirements.txt
